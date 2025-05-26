@@ -9,10 +9,10 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_APP_ID: string
   readonly VITE_FIREBASE_MEASUREMENT_ID: string
 
-  readonly VITE_ANGELO﻿NE_TRADING_API_KEY: string
-  readonly VITE_ANGELO﻿NE_MARKET_FEED_API_KEY: string
-  readonly VITE_ANGELO﻿NE_HISTORICAL_API_KEY: string
-  readonly VITE_ANGELO﻿NE_PUBLISHER_API_KEY: string
+  readonly VITE_ANGELONE_TRADING_API_KEY: string
+  readonly VITE_ANGELONE_MARKET_FEED_API_KEY: string
+  readonly VITE_ANGELONE_HISTORICAL_API_KEY: string
+  readonly VITE_ANGELONE_PUBLISHER_API_KEY: string
 
   readonly VITE_INDIAN_STOCK_API_SERVER: string
   readonly VITE_INDIAN_STOCK_API_KEY: string
