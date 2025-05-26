@@ -11,35 +11,49 @@ from routes.portfolio import portfolio_bp
 from routes.backtest import backtest_bp
 from models.db import db
 
-# Load environment variables
+# 1. Load environment variables from your .env
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
 
-# Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI', 'sqlite:///algotrading.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-secret-key')
+# 2. Configure CORS:
+#    Set CORS_ORIGINS in your environment (comma-separated list),
+#    e.g. CORS_ORIGINS=https://anewrepo.onrender.com,https://mystocktrading-ui.netlify.app
+origins = os.getenv(
+    "CORS_ORIGINS",
+    "https://anewrepo.onrender.com,https://mystocktrading-ui.netlify.app"
+)
+allowed_origins = [url.strip() for url in origins.split(",")]
 
-# Initialize extensions
+CORS(app, origins=allowed_origins)
+
+# 3. App configuration
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+    "DATABASE_URI", "sqlite:///algotrading.db"
+)
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-secret-key")
+
+# 4. Initialize extensions
 db.init_app(app)
 jwt = JWTManager(app)
 
-# Register blueprints
-app.register_blueprint(auth_bp, url_prefix='/api/auth')
-app.register_blueprint(market_bp, url_prefix='/api/market')
-app.register_blueprint(strategy_bp, url_prefix='/api/strategy')
-app.register_blueprint(portfolio_bp, url_prefix='/api/portfolio')
-app.register_blueprint(backtest_bp, url_prefix='/api/backtest')
+# 5. Register your blueprints
+app.register_blueprint(auth_bp,      url_prefix="/api/auth")
+app.register_blueprint(market_bp,    url_prefix="/api/market")
+app.register_blueprint(strategy_bp,  url_prefix="/api/strategy")
+app.register_blueprint(portfolio_bp, url_prefix="/api/portfolio")
+app.register_blueprint(backtest_bp,  url_prefix="/api/backtest")
 
-@app.route('/api/health')
+# 6. A simple health check
+@app.route("/api/health")
 def health_check():
     return jsonify({"status": "healthy"})
 
-# Create database tables
+# 7. Ensure all tables exist
 with app.app_context():
     db.create_all()
 
-if __name__ == '__main__':
+# 8. Only run Flask’s built-in server in local dev
+if __name__ == "__main__":
     app.run(debug=True)
