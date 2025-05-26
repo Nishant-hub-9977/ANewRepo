@@ -1,10 +1,13 @@
+# netlify.toml
 [build]
-  # Install deps and build your Vite app
-  command = "npm install && npm run build"
-  # Vite outputs into `dist/` by default
-  publish = "dist"
+  # your existing build command
+  command   = "npm install && npm run build"
+  # where Vite emits the built files
+  publish   = "dist"
+  # ✏️ override the default functions directory so Netlify won’t skip the build
+  functions = ""
 
-# Redirect all routes to index.html for SPA routing
+# Redirect all routes to index.html for client-side routing
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
