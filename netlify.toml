@@ -1,0 +1,11 @@
+[build]
+  # Install deps and build your Vite app
+  command = "npm install && npm run build"
+  # Vite outputs into `dist/` by default
+  publish = "dist"
+
+# Redirect all routes to index.html for SPA routing
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
