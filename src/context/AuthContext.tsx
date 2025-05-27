@@ -1,4 +1,3 @@
-// src/context/AuthContext.tsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import {
   signInWithEmailAndPassword,
@@ -8,6 +7,7 @@ import {
   User,
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import axios from 'axios';
 
 interface AuthContextType {
   user: User | null;
@@ -36,37 +36,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const token = await userCredential.user.getIdToken();
+
+    // Optionally store token or configure axios
+    localStorage.setItem('token', token);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
     setIsAuthenticated(true);
     setUser(userCredential.user);
-
-    // Optional: attach token globally to axios
-    // axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   };
 
   const register = async (email: string, password: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const token = await userCredential.user.getIdToken();
+
+    localStorage.setItem('token', token);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
     setIsAuthenticated(true);
     setUser(userCredential.user);
-
-    // Optional: attach token globally to axios
-    // axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   };
 
   const logout = async () => {
     await signOut(auth);
+    localStorage.removeItem('token');
+    delete axios.defaults.headers.common['Authorization'];
     setUser(null);
     setIsAuthenticated(false);
-    // delete axios.defaults.headers.common['Authorization'];
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const token = await firebaseUser.getIdToken();
+        localStorage.setItem('token', token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         setUser(firebaseUser);
         setIsAuthenticated(true);
-        // axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       } else {
         setUser(null);
         setIsAuthenticated(false);
