@@ -1,19 +1,21 @@
+// src/context/AuthContext.tsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-}
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+  User,
+} from 'firebase/auth';
+import { auth } from '../firebase';
 
 interface AuthContextType {
-  isAuthenticated: boolean;
   user: User | null;
+  isAuthenticated: boolean;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string, initialBalance: number) => Promise<void>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,84 +29,57 @@ export const useAuth = (): AuthContextType => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  const login = async (email: string, password: string) => {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const token = await userCredential.user.getIdToken();
+    setIsAuthenticated(true);
+    setUser(userCredential.user);
+
+    // Optional: attach token globally to axios
+    // axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  };
+
+  const register = async (email: string, password: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const token = await userCredential.user.getIdToken();
+    setIsAuthenticated(true);
+    setUser(userCredential.user);
+
+    // Optional: attach token globally to axios
+    // axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  };
+
+  const logout = async () => {
+    await signOut(auth);
+    setUser(null);
+    setIsAuthenticated(false);
+    // delete axios.defaults.headers.common['Authorization'];
+  };
 
   useEffect(() => {
-    // Check if user is already authenticated
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (token && storedUser) {
-      setIsAuthenticated(true);
-      setUser(JSON.parse(storedUser));
-      
-      // Set default Authorization header for all requests
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    }
-    
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const token = await firebaseUser.getIdToken();
+        setUser(firebaseUser);
+        setIsAuthenticated(true);
+        // axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = async (username: string, password: string): Promise<void> => {
-    try {
-      const response = await axios.post('/api/auth/login', { username, password });
-      const { user, access_token } = response.data;
-      
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      // Set default Authorization header for all requests
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      
-      setIsAuthenticated(true);
-      setUser(user);
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
-    }
-  };
-
-  const register = async (username: string, email: string, password: string, initialBalance: number): Promise<void> => {
-    try {
-      const response = await axios.post('/api/auth/register', { 
-        username, 
-        email, 
-        password,
-        initial_balance: initialBalance
-      });
-      
-      const { user, access_token } = response.data;
-      
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      // Set default Authorization header for all requests
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      
-      setIsAuthenticated(true);
-      setUser(user);
-    } catch (error) {
-      console.error('Registration failed:', error);
-      throw error;
-    }
-  };
-
-  const logout = (): void => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
-    // Remove Authorization header
-    delete axios.defaults.headers.common['Authorization'];
-    
-    setIsAuthenticated(false);
-    setUser(null);
-  };
-
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, loading, login, register, logout }}>
-      {children}
+    <AuthContext.Provider value={{ user, isAuthenticated, loading, login, register, logout }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
