@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from firebase_admin import auth as firebase_auth
-from backend.firebase_init import *  # ✅ ensures Firebase is initialized
+from ..firebase_init import *  # ✅ Ensures Firebase is initialized from one directory up
 
 secure_bp = Blueprint('secure', __name__)
 
