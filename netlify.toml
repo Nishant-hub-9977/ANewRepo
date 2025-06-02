@@ -1,0 +1,14 @@
+# netlify.toml
+[build]
+  # your existing build command
+  command   = "npm install && npm run build"
+  # where Vite emits the built files
+  publish   = "dist"
+  # ✏️ override the default functions directory so Netlify won’t skip the build
+  functions = ""
+
+# Redirect all routes to index.html for client-side routing
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
