@@ -31,7 +31,7 @@ const Register: React.FC = () => {
     setLoading(true);
     
     try {
-      await register(username, email, password, initialBalance);
+      await register(email, password);
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Registration failed. Please try again.');
