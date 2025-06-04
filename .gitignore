@@ -30,3 +30,5 @@ backend/.env
 
 # Misc
 coverage/
+
+backend/instance/*.db
