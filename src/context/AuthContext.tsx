@@ -1,20 +1,23 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut,
-  User,
-} from 'firebase/auth';
-import { auth } from '../firebase';
 import axios from 'axios';
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+}
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
+  register: (
+    username: string,
+    email: string,
+    password: string,
+    initialBalance: number
+  ) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -33,31 +36,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  const login = async (email: string, password: string) => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const token = await userCredential.user.getIdToken();
+  const login = async (username: string, password: string) => {
+    const response = await axios.post('/api/auth/login', { username, password });
+    const { access_token, user } = response.data;
 
-    // Optionally store token or configure axios
-    localStorage.setItem('token', token);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    localStorage.setItem('token', access_token);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
 
     setIsAuthenticated(true);
-    setUser(userCredential.user);
+    setUser(user);
   };
 
-  const register = async (email: string, password: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const token = await userCredential.user.getIdToken();
+  const register = async (
+    username: string,
+    email: string,
+    password: string,
+    initialBalance: number
+  ) => {
+    const response = await axios.post('/api/auth/register', {
+      username,
+      email,
+      password,
+      initial_balance: initialBalance,
+    });
+    const { access_token, user } = response.data;
 
-    localStorage.setItem('token', token);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    localStorage.setItem('token', access_token);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
 
     setIsAuthenticated(true);
-    setUser(userCredential.user);
+    setUser(user);
   };
 
   const logout = async () => {
-    await signOut(auth);
     localStorage.removeItem('token');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
@@ -65,21 +76,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const token = await firebaseUser.getIdToken();
-        localStorage.setItem('token', token);
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        setUser(firebaseUser);
-        setIsAuthenticated(true);
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
-      }
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axios
+        .get('/api/auth/profile')
+        .then((res) => {
+          setUser(res.data.user);
+          setIsAuthenticated(true);
+        })
+        .catch(() => {
+          localStorage.removeItem('token');
+          delete axios.defaults.headers.common['Authorization'];
+        })
+        .finally(() => setLoading(false));
+    } else {
       setLoading(false);
-    });
-
-    return () => unsubscribe();
+    }
   }, []);
 
   return (
