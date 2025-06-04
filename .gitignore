@@ -32,3 +32,4 @@ backend/.env
 coverage/
 backend/instance/*.db
 **/__pycache__/
+
